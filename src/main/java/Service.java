@@ -1,6 +1,4 @@
 import model.Login;
-import net.sourceforge.tess4j.Tesseract;
-import net.sourceforge.tess4j.TesseractException;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -12,6 +10,7 @@ import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
 import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.message.BasicNameValuePair;
@@ -21,13 +20,9 @@ import util.Utility;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 public class Service {
     private DefaultHttpClient httpClient;
@@ -95,6 +90,50 @@ public class Service {
         response = httpClient.execute(getRequest);
         String s1 = EntityUtils.toString(response.getEntity());
         System.out.println(s1);
+
+        HttpPost nonce = new HttpPost(Utility.getConfig("nonce"));
+        HttpEntity stringEntity = new StringEntity("{\"timeoutInSecond\":5}");
+        nonce.setEntity(stringEntity);
+        nonce.setHeader("Accept-Encoding", "gzip, deflate, br");
+        nonce.setHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:22.0) Gecko/20100101 Firefox/22.0");
+        nonce.setHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+        nonce.setHeader("Accept-Language", "en-US,en;q=0.5");
+        nonce.setHeader("Connection", "keep-alive");
+        nonce.setHeader("Content-Type", "application/x-www-form-urlencoded");
+        nonce.setHeader("Host", "online.agah.com");
+        nonce.setHeader("Origin", "https://online.agah.com");
+        nonce.setHeader("Referer", "https://online.agah.com/Auth/Login?ReturnUrl=%2f");
+        nonce.setHeader("Upgrade-Insecure-Requests", "1");
+
+        HttpResponse nonceRes = httpClient.execute(nonce);
+        String nonceString = EntityUtils.toString(nonceRes.getEntity());
+
+
+        HttpPost sendOrderReq = new HttpPost(Utility.getConfig("send-order"));
+        String json = "{\"orderModel\":{\"Id\":0,\"CustomerId\":165296211,\"CustomerTitle\":\"محمد جلیلی \",\"OrderSide\":\"Buy\",\"OrderSideId\":1,\"Price\":30353,\"Quantity\":42,\"Value\":0,\"ValidityDate\":null,\"MinimumQuantity\":null,\"DisclosedQuantity\":null,\"ValidityType\":1,\"InstrumentId\":2424,\"InstrumentIsin\":\"IRO1GSBE0001\",\"InstrumentName\":\"قثابت\",\"BankAccountId\":0,\"ExpectedRemainingQuantity\":0,\"TradedQuantity\":0,\"CategoryId\":\"" + UUID.randomUUID().toString() + "\",\"RemainingQuantity\":42,\"OrderExecuterId\":3},\"nonce\": " + nonceString + "}";
+        HttpEntity sendOrderJson = new StringEntity(
+                json
+        );
+        sendOrderReq.setEntity(sendOrderJson);
+        sendOrderReq.setHeader("Accept-Encoding", "gzip, deflate, br");
+        sendOrderReq.setHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:22.0) Gecko/20100101 Firefox/22.0");
+        sendOrderReq.setHeader("Accept", "application/json, text/plain, */*");
+        sendOrderReq.setHeader("Accept-Language", "en-ZA,en-GB;q=0.9,en-US;q=0.8,en;q=0.7,fa;q=0.6");
+        sendOrderReq.setHeader("Connection", "keep-alive");
+        sendOrderReq.setHeader("Content-Type", "application/json;charset=UTF-8");
+        sendOrderReq.setHeader("Host", "online.agah.com");
+        sendOrderReq.setHeader("Origin", "https://online.agah.com");
+        sendOrderReq.setHeader("Referer", "https://online.agah.com/Auth/Login?ReturnUrl=%2f");
+        sendOrderReq.setHeader("Upgrade-Insecure-Requests", "1");
+        sendOrderReq.setHeader("Sec-Fetch-Mode", "cors");
+        sendOrderReq.setHeader("Sec-Fetch-Site", "same-origin");
+        sendOrderReq.setHeader("X-Requested-With", "XMLHttpRequest");
+
+        HttpResponse sendOrderRes = httpClient.execute(sendOrderReq);
+        String sendOrderString = EntityUtils.toString(sendOrderRes.getEntity());
+        System.out.println(sendOrderString);
+
+
         httpClient.getConnectionManager().shutdown();
 
     }
@@ -131,18 +170,17 @@ public class Service {
             ImageIO.write(read, "jpg", new File(imageName));
 
 
-
-            is.close();
-
             System.out.println("-------- finish save captcha to file " + imageName + " ---------");
-            Tesseract tesseract = new Tesseract();
+          /*  Tesseract tesseract = new Tesseract();
             try {
-                String s = tesseract.doOCR(read);
+                tesseract.setDatapath("imageName");
+                String s = tesseract.doOCR(new File(imageName));
                 System.out.print(s);
 
             } catch (TesseractException e) {
                 e.printStackTrace();
-            }
+            }*/
+            is.close();
 
             return firstHeader.getValue();
 
